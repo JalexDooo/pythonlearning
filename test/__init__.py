@@ -6,7 +6,7 @@ import cv2
 import os
 import glob
 import sys
-
+ # https://blog.csdn.net/u012222949/article/details/72875281/
 
 shuffle_data = True
 image_path = "C:\\Users\\Jonty\\Desktop\\Project\\TMExample\\*.png"
@@ -38,7 +38,6 @@ def _float_feature(value):
 def write_tfrecords():
     addrs = glob.glob(image_path)
     labels = np.zeros(len(addrs))
-    print(labels)
     if shuffle_data:
         c = list(zip(addrs, labels))
         shuffle(c)
