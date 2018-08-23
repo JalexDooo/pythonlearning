@@ -1,80 +1,31 @@
-from random import shuffle
-from PIL import Image
-import numpy as np
 import tensorflow as tf
-import cv2
-import os
-import glob
-import sys
-# https://blog.csdn.net/u012222949/article/details/72875281/
-# https://blog.csdn.net/u012222949/article/details/72875281/
+import numpy as np
+import matplotlib.pyplot as plt
 
-shuffle_data = True
-image_path = "C:\\Users\\Jonty\\Desktop\\Project\\TMExample\\*.png"
-train_filename = "src/train.tfrecords"
+threshold = 1.0e-2
+x_data = np.random.randn(100).astype(np.float32)
+y_data = x_data * 0.3 + 0.15
 
+weight = tf.Variable(1.)
+bias = tf.Variable(1.)
+x_ = tf.placeholder(tf.float32)
+y_ = tf.placeholder(tf.float32)
+y_model = tf.add(tf.multiply(x_, weight), bias)
 
-def load_image(addr):
-    img = cv2.imread(addr)
-    img = cv2.resize(img, (224, 224), interpolation=cv2.INTER_CUBIC)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+loss = tf.reduce_mean(pow((y_model - y_), 2))
+train_op = tf.train.GradientDescentOptimizer(0.01).minimize(loss)
 
-    img = img / 255
-    img = img.astype(np.float32)
-    return img
+sess = tf.Session()
+sess.run(tf.global_variables_initializer())
 
-
-def _int64_feature(value):
-    return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
-
-
-def _bytes_feature(value):
-    return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
-
-
-def _float_feature(value):
-    return tf.train.Feature(float_list=tf.train.FloatList(value=[value]))
-
-
-def write_tfrecords():
-    addrs = glob.glob(image_path)
-    labels = np.zeros(len(addrs))
-    if shuffle_data:
-        c = list(zip(addrs, labels))
-        shuffle(c)
-        addrs, labels = zip(*c)
-
-    train_addrs = addrs[0:int(0.7*len(addrs))]
-    train_labels = labels[0:int(0.7*len(labels))]
-
-    val_addrs = addrs[int(0.7*len(addrs)) : int(0.9*len(addrs))]
-    val_labels = labels[int(0.7*len(labels)) : int(0.9*len(labels))]
-
-    test_addrs = addrs[int(0.9*len(addrs)):]
-    test_labels = labels[int(0.9*len(labels)):]
-
-    writer = tf.python_io.TFRecordWriter(train_filename)
-
-    for i in range(len(train_addrs)):
-
-        if not i % 1000:
-            print('Train data : {}/{}'.format(i, len(train_addrs)))
-            sys.stdout.flush()
-
-        img = load_image(train_addrs[i])
-        label = train_labels[i]
-
-        feature = {
-            'train/label': _float_feature(label),
-            'train/image': _bytes_feature(tf.compat.as_bytes(img.tostring()))
-        }
-
-        example = tf.train.Example(features=tf.train.Features(feature=feature))
-
-        writer.write(example.SerializeToString())
-    writer.close()
-    sys.stdout.flush()
-
-
-if __name__ == "__main__":
-    write_tfrecords()
+flag = True
+while flag:
+    for (x, y) in zip(x_data, y_data):
+        sess.run(train_op, feed_dict={x_: x, y_: y})
+        print('weight={}|bias={}'.format(weight.eval(sess), bias.eval(sess)))
+    if sess.run(loss, feed_dict={x_: x_data, y_: y_data}) <= threshold:
+        flag = False
+plt.plot(x_data, y_data, 'ro', label='Original data')
+plt.plot(x_data, sess.run(weight) * x_data + sess.run(bias), label='Fitted line')
+plt.legend()
+plt.show()
